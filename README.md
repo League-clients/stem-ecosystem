@@ -81,7 +81,7 @@ rewritten by fetch-data the same way, so existing pages need no changes.
 
 ## Deployment
 
-**Production** — `.github/workflows/deploy.yml` builds and deploys to GitHub Pages **daily at 14:00 UTC** (a `schedule:` trigger) and on demand (Actions -> Deploy -> Run workflow, or `gh workflow run deploy.yml`); there is no push trigger. It fetches the data first (`npm run fetch-data`). It passes `--site` and `--base` from `actions/configure-pages`, so absolute
+**Production** — `.github/workflows/deploy.yml` builds and deploys to GitHub Pages **manually only** (Actions -> Deploy -> Run workflow, or `gh workflow run deploy.yml`); there is no push or scheduled trigger. It fetches the data first (`npm run fetch-data`). It passes `--site` and `--base` from `actions/configure-pages`, so absolute
 URLs in `llms.txt` and `/for-agents` derive from whatever origin actually serves the build
 (see `src/pages/llms.txt.ts`). Nothing hardcodes a domain.
 

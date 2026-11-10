@@ -1,12 +1,7 @@
 name: Deploy to GitHub Pages
 
-# Daily rebuild so the site picks up the scraper container's latest bucket
-# data, plus manual runs: Actions -> Deploy -> Run workflow, or
-# `gh workflow run deploy.yml`.
+# Manual only: Actions -> Deploy -> Run workflow, or `gh workflow run deploy.yml`.
 on:
-  schedule:
-    # 14:00 UTC = 06:00 PST / 07:00 PDT, after the container's 03:00-05:00 PT jobs.
-    - cron: '0 14 * * *'
   workflow_dispatch:
 
 # Allow one concurrent deployment

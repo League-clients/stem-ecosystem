@@ -356,8 +356,6 @@ leading `v` (tag `v0.20261008.3` -> `0.20261008.3`).
 
 ## Site rebuild
 
-The container only refreshes the bucket. Publishing the site is separate:
-`deploy.yml` rebuilds from the bucket daily at 14:00 UTC (06:00 PST / 07:00
-PDT, after the 03:00-05:00 PT jobs). To publish sooner: Actions -> Deploy ->
-Run workflow, or
+The container only refreshes the bucket. Publishing the site is separate and
+manual: Actions -> Deploy -> Run workflow, or
 `gh workflow run deploy.yml --repo league-infrastructure/stem-ecosystem`.

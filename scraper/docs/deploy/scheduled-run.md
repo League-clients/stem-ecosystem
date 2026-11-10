@@ -6,11 +6,11 @@ container with built-in cron; see `scraper/docker/README.md` for build,
 secrets, schedule and operation.
 The old 30-minute job-timeout risk is moot.
 
-Site deploys run **daily at 14:00 UTC** (a `schedule:` trigger in
-`deploy.yml`) and on demand: Actions -> Deploy -> Run workflow, or
+Site deploys are **manual only**: Actions -> Deploy -> Run workflow, or
 `gh workflow run deploy.yml --repo league-infrastructure/stem-ecosystem`.
 `deploy.yml` runs `npm run fetch-data` (anonymous HTTPS from the bucket's
-public `data/` prefix) before building.
+public `data/` prefix) before building. A separate site-rebuild cron may be
+added later.
 
 The sections below are kept as background on how the scraper job was
 configured (storage, secrets) and are useful when setting up the container
