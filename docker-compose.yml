@@ -8,15 +8,15 @@ x-league:
 
 services:
   scraper:
-    image: ghcr.io/league-infrastructure/stem-ecosystem-scraper:${TAG:-latest}
+    image: ghcr.io/league-clients/stem-ecosystem-scraper:${TAG:-latest}
     build:
       context: .
       dockerfile: scraper/docker/Dockerfile
     environment:
       # The secrets bundle (base64 KEY=value lines) is read from this file.
-      SCRAPER_SECRETS_FILE: /run/secrets/stem-ecosystem_scraper_secrets
+      SCRAPER_SECRETS_FILE: /run/secrets/stem-ecosystem_scraper_secrets_v2
     secrets:
-      - stem-ecosystem_scraper_secrets
+      - stem-ecosystem_scraper_secrets_v2
     volumes:
       # Chromium needs more than Docker's 64 MB /dev/shm. Swarm ignores
       # shm_size and does not support host IPC, so use a 1 GiB tmpfs.
@@ -45,13 +45,13 @@ services:
   updates:
     # Partner update-agent sidecar (HTTP API behind Caddy). See
     # scraper/docker/README.md, "Updates sidecar".
-    image: ghcr.io/league-infrastructure/stem-ecosystem-updates:${TAG:-latest}
+    image: ghcr.io/league-clients/stem-ecosystem-updates:${TAG:-latest}
     build:
       context: .
       dockerfile: scraper/docker/Dockerfile.sidecar
     environment:
       SCRAPER_SECRETS_FILE: /run/secrets/stem-ecosystem_updates_secrets
-      UPDATES_ALLOWED_ORIGINS: ${UPDATES_ALLOWED_ORIGINS:-https://league-infrastructure.github.io,https://www.sdstemecosystem.org,https://sdstemecosystem.org,http://localhost:4322,http://localhost:4323,http://crispin.tail185923.ts.net:4323,http://crispin:4323,http://100.83.248.125:4323}
+      UPDATES_ALLOWED_ORIGINS: ${UPDATES_ALLOWED_ORIGINS:-https://league-clients.github.io,https://league-infrastructure.github.io,https://www.sdstemecosystem.org,https://sdstemecosystem.org,http://localhost:4322,http://localhost:4323,http://crispin.tail185923.ts.net:4323,http://crispin:4323,http://100.83.248.125:4323}
       UPDATES_FALLBACK_EMAIL: ${UPDATES_FALLBACK_EMAIL:-partners@sdstemecosystem.org}
       UPDATES_DAILY_SPEND_USD: ${UPDATES_DAILY_SPEND_USD:-5}
     secrets:
@@ -83,7 +83,7 @@ networks:
     external: true
 
 secrets:
-  stem-ecosystem_scraper_secrets:
+  stem-ecosystem_scraper_secrets_v2:
     external: true
   stem-ecosystem_updates_secrets:
     external: true

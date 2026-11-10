@@ -45,7 +45,7 @@ Required per job:
 | profiles | `DO_SPACES_ACCESS_KEY`, `DO_SPACES_SECRET_KEY` |
 | updates | `DO_SPACES_ACCESS_KEY`, `DO_SPACES_SECRET_KEY`, `ANTHROPIC_API_KEY` (waived **only** with `--no-llm`; `--dry-run` still calls Haiku) |
 
-`ROBOTEVENTS_KEY` is optional. A job with missing variables logs
+`ROBOTEVENTS_KEY` and `GITHUB_ACTION_TOKEN` (site deploy trigger; see "Site rebuild") are optional. A job with missing variables logs
 `FAILURE job=X missing=NAMES` (names only) and does not run.
 
 ## Run (long-lived)
@@ -193,7 +193,7 @@ in the bucket.
 docker build -f scraper/docker/Dockerfile.sidecar -t partner-scrape-updates .
 docker buildx build --platform linux/amd64 \
   -f scraper/docker/Dockerfile.sidecar \
-  -t ghcr.io/league-infrastructure/stem-ecosystem-updates:<ver> --push .
+  -t ghcr.io/league-clients/stem-ecosystem-updates:<ver> --push .
 ```
 
 ### Secrets bundle
@@ -291,7 +291,7 @@ leading `v` (tag `v0.20261008.3` -> `0.20261008.3`).
    ```bash
    docker buildx build --platform linux/amd64 \
      -f scraper/docker/Dockerfile \
-     -t ghcr.io/league-infrastructure/stem-ecosystem-scraper:<ver> \
+     -t ghcr.io/league-clients/stem-ecosystem-scraper:<ver> \
      --push .
    ```
 
@@ -356,6 +356,17 @@ leading `v` (tag `v0.20261008.3` -> `0.20261008.3`).
 
 ## Site rebuild
 
-The container only refreshes the bucket. Publishing the site is separate and
-manual: Actions -> Deploy -> Run workflow, or
-`gh workflow run deploy.yml --repo league-infrastructure/stem-ecosystem`.
+The site is a static build from the bucket, published by the `deploy.yml`
+workflow in `League-clients/stem-ecosystem`. After a successful `scrape`,
+`teams`, `directory` or `updates` job (not `profiles`, and never with
+`--dry-run`), `run-job` asks GitHub to run that workflow and logs
+`DEPLOY job=X triggered repo=...`. This needs `GITHUB_ACTION_TOKEN` in the
+secrets bundle: a fine-grained token, resource owner League-clients, scoped to
+this repo, with only Actions: read and write. Without it the job logs
+`NOTE ... site deploy skipped` and carries on; a failed request logs a
+`WARNING` and never changes the job's exit code. `DEPLOY_REPO` overrides the
+repo. There is no GitHub `schedule:` trigger (GitHub disables those after 60
+days without commits, and scrapes never commit).
+
+To publish by hand: Actions -> Deploy -> Run workflow, or
+`gh workflow run deploy.yml --repo League-clients/stem-ecosystem`.

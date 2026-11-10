@@ -6,8 +6,10 @@ container with built-in cron; see `scraper/docker/README.md` for build,
 secrets, schedule and operation.
 The old 30-minute job-timeout risk is moot.
 
-Site deploys are **manual only**: Actions -> Deploy -> Run workflow, or
-`gh workflow run deploy.yml --repo league-infrastructure/stem-ecosystem`.
+Site deploys are started by the scraper container after each successful data
+job (see `scraper/docker/README.md`, "Site rebuild"), or by hand: Actions ->
+Deploy -> Run workflow, or
+`gh workflow run deploy.yml --repo League-clients/stem-ecosystem`.
 `deploy.yml` runs `npm run fetch-data` (anonymous HTTPS from the bucket's
 public `data/` prefix) before building. A separate site-rebuild cron may be
 added later.
@@ -50,10 +52,10 @@ From the repo root:
 
 ```bash
 # Dry-run first: confirms which keys and repo would be affected
-dotconfig gh-push -d prod --actions --repo league-infrastructure/stem-ecosystem --dry-run
+dotconfig gh-push -d prod --actions --repo League-clients/stem-ecosystem --dry-run
 
 # Then for real
-dotconfig gh-push -d prod --actions --repo league-infrastructure/stem-ecosystem
+dotconfig gh-push -d prod --actions --repo League-clients/stem-ecosystem
 ```
 
 `dotconfig gh-push` is the only step that transmits the values. They go
@@ -62,7 +64,7 @@ straight to GitHub's Actions secrets store.
 ## 2. (Historical) Verify the secrets are present
 
 ```bash
-gh api repos/league-infrastructure/stem-ecosystem/actions/secrets --jq '.secrets[].name'
+gh api repos/League-clients/stem-ecosystem/actions/secrets --jq '.secrets[].name'
 ```
 
 The output should include all three names.

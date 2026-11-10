@@ -285,7 +285,7 @@ def test_run_job_success(tmp_path):
     assert proc.returncode == 0
     lines = proc.stdout.splitlines()
     assert re.match(r"^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ START job=directory$", lines[0])
-    assert re.search(r"SUCCESS job=directory exit=0 duration=\d+s$", proc.stdout)
+    assert re.search(r"SUCCESS job=directory exit=0 duration=\d+s$", proc.stdout, re.M)
     assert argv == "directory"
 
 
@@ -436,3 +436,76 @@ def test_crontab_new_jobs_do_not_overlap():
     # distinct (day, hour) slots
     slots = [(l[4], l[1]) for l in lines]
     assert len(slots) == len(set(slots))
+
+
+# ------------------------------------------------- run-job: site deploy trigger
+
+
+def run_job_deploy(tmp_path, args, token="fake-gh-token", http="204", stub_exit=0):
+    """run_job with a stub curl that records argv and stdin and prints ``http``."""
+    bindir = tmp_path / "bin"
+    bindir.mkdir(exist_ok=True)
+    curl = bindir / "curl"
+    curl.write_text(
+        '#!/bin/sh\n'
+        f'echo "$@" > "{tmp_path}/curl.args"\n'
+        f'cat > "{tmp_path}/curl.stdin"\n'
+        f'printf %s "{http}"\n'
+    )
+    curl.chmod(0o755)
+    stub = bindir / "partner-scrape"
+    stub.write_text(f'#!/bin/sh\nexit {stub_exit}\n')
+    stub.chmod(0o755)
+    env = {"PATH": f"{bindir}:{os.environ['PATH']}", **FAKE}
+    if token is not None:
+        env["GITHUB_ACTION_TOKEN"] = token
+    proc = subprocess.run(
+        ["bash", str(RUN_JOB), *args], env=env, capture_output=True, text=True
+    )
+    called = (tmp_path / "curl.args").exists()
+    return proc, called
+
+
+def test_run_job_triggers_deploy_with_token_on_stdin(tmp_path):
+    proc, called = run_job_deploy(tmp_path, ["scrape"])
+    assert proc.returncode == 0
+    assert called
+    args = (tmp_path / "curl.args").read_text()
+    assert "repos/League-clients/stem-ecosystem/actions/workflows/deploy.yml/dispatches" in args
+    assert '{"ref":"master"}' in args
+    assert "fake-gh-token" not in args  # not in argv
+    assert (tmp_path / "curl.stdin").read_text() == "Authorization: Bearer fake-gh-token\n"
+    assert re.search(r"DEPLOY job=scrape triggered repo=League-clients/stem-ecosystem$", proc.stdout, re.M)
+    assert "fake-gh-token" not in proc.stdout + proc.stderr
+
+
+@pytest.mark.parametrize("job", ["scrape", "teams", "directory", "updates"])
+def test_run_job_deploys_after_data_jobs(tmp_path, job):
+    _, called = run_job_deploy(tmp_path, [job])
+    assert called
+
+
+def test_run_job_no_deploy_for_profiles_dry_run_or_failure(tmp_path):
+    for i, (args, stub_exit) in enumerate(
+        [(["profiles"], 0), (["scrape", "--dry-run"], 0), (["scrape"], 3)]
+    ):
+        d = tmp_path / str(i)
+        d.mkdir()
+        _, called = run_job_deploy(d, args, stub_exit=stub_exit)
+        assert not called, args
+
+
+def test_run_job_deploy_skipped_without_token(tmp_path):
+    proc, called = run_job_deploy(tmp_path, ["scrape"], token=None)
+    assert proc.returncode == 0
+    assert not called
+    assert "site deploy skipped (no GITHUB_ACTION_TOKEN)" in proc.stdout
+
+
+def test_run_job_deploy_failure_keeps_exit_code(tmp_path):
+    proc, called = run_job_deploy(tmp_path, ["scrape"], http="403")
+    assert called
+    assert proc.returncode == 0
+    assert "site deploy trigger failed http=403" in proc.stdout
+    assert "fake-gh-token" not in proc.stdout + proc.stderr
+

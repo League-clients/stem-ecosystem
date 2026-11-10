@@ -8,6 +8,7 @@
 #   <UTC ISO ts> SUCCESS job=X exit=0 duration=Ns
 #   <UTC ISO ts> FAILURE job=X exit=N duration=Ns
 #   <UTC ISO ts> FAILURE job=X missing=VAR1,VAR2        (preflight; not run)
+#   <UTC ISO ts> DEPLOY job=X triggered repo=OWNER/REPO  (site rebuild requested)
 # Only variable names are ever logged, never values. Exits with the job's
 # status; 2 for usage errors; 1 for preflight failure.
 #
@@ -74,6 +75,31 @@ case "$job" in
     ;;
 esac
 
+# After a successful job that changes site data, ask GitHub to run the site's
+# deploy workflow, which rebuilds the site from the bucket. Best-effort, like
+# the log upload: skipped on --dry-run or without GITHUB_ACTION_TOKEN, and it
+# never changes the job's exit code. The token reaches curl on stdin, not argv.
+DEPLOY_REPO="${DEPLOY_REPO:-League-clients/stem-ecosystem}"
+trigger_deploy() {
+  case "$job" in scrape | teams | directory | updates) ;; *) return 0 ;; esac
+  if has_arg --dry-run "$@"; then return 0; fi
+  if [ -z "${GITHUB_ACTION_TOKEN:-}" ]; then
+    echo "$(ts) NOTE job=$job site deploy skipped (no GITHUB_ACTION_TOKEN)"
+    return 0
+  fi
+  local url="https://api.github.com/repos/$DEPLOY_REPO/actions/workflows/deploy.yml/dispatches"
+  local code
+  code="$(printf 'Authorization: Bearer %s\n' "$GITHUB_ACTION_TOKEN" |
+    curl -sS -o /dev/null -w '%{http_code}' -X POST -H @- \
+      -H 'Accept: application/vnd.github+json' -d '{"ref":"master"}' \
+      "$url" 2>/dev/null)"
+  if [ "$code" = 204 ]; then
+    echo "$(ts) DEPLOY job=$job triggered repo=$DEPLOY_REPO"
+  else
+    echo "$(ts) WARNING job=$job site deploy trigger failed http=${code:-none} (exit code unchanged)"
+  fi
+}
+
 # The job body runs in a pipeline so stdout+stderr are teed to a temp file
 # (still reaching `docker logs`) for upload to logs/ in the bucket on exit.
 run_body() {
@@ -101,6 +127,7 @@ run_body() {
   rc=$?
   if [ "$rc" -eq 0 ]; then
     echo "$(ts) SUCCESS job=$job exit=0 duration=${SECONDS}s"
+    trigger_deploy "$@"
   else
     echo "$(ts) FAILURE job=$job exit=$rc duration=${SECONDS}s"
   fi

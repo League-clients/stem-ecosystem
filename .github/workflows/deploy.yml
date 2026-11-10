@@ -1,6 +1,8 @@
 name: Deploy to GitHub Pages
 
-# Manual only: Actions -> Deploy -> Run workflow, or `gh workflow run deploy.yml`.
+# Run by the scraper container after each successful data job (run-job, with
+# GITHUB_ACTION_TOKEN), or by hand: Actions -> Deploy -> Run workflow, or
+# `gh workflow run deploy.yml`.
 on:
   workflow_dispatch:
 

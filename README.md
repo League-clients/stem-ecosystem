@@ -81,7 +81,7 @@ rewritten by fetch-data the same way, so existing pages need no changes.
 
 ## Deployment
 
-**Production** — `.github/workflows/deploy.yml` builds and deploys to GitHub Pages **manually only** (Actions -> Deploy -> Run workflow, or `gh workflow run deploy.yml`); there is no push or scheduled trigger. It fetches the data first (`npm run fetch-data`). It passes `--site` and `--base` from `actions/configure-pages`, so absolute
+**Production** — `.github/workflows/deploy.yml` builds and deploys to GitHub Pages at `https://league-clients.github.io/stem-ecosystem/`. The scraper container starts it after each successful `scrape`, `teams`, `directory` or `updates` job (see `scraper/docker/README.md`, "Site rebuild"); run it by hand with Actions -> Deploy -> Run workflow, or `gh workflow run deploy.yml`. There is no push or scheduled trigger. It fetches the data first (`npm run fetch-data`). It passes `--site` and `--base` from `actions/configure-pages`, so absolute
 URLs in `llms.txt` and `/for-agents` derive from whatever origin actually serves the build
 (see `src/pages/llms.txt.ts`). Nothing hardcodes a domain.
 
